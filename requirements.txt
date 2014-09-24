@@ -1,0 +1,5 @@
+ipython==2.2.0
+-e git+https://github.com/turnkeylinux/octohub#egg=octohub
+requests==2.4.1
+simplejson==3.6.3
+wsgiref==0.1.2
