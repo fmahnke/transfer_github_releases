@@ -1,6 +1,7 @@
+import itertools
 import json
 from StringIO import StringIO
-from octohub.connection import Connection
+from octohub.connection import Connection, Pager
 import requests
 
 # Source repository
@@ -26,8 +27,8 @@ class Repository:
 
 	def fetch_releases(self):
 		uri = '/repos/{}/releases'.format(self.repository)
-		response = self.connection.send('GET', uri)
-		return response
+                paged_releases = [r.parsed for r in Pager(self.connection, uri, None)]
+		return list(itertools.chain.from_iterable(paged_releases))
 
 	def create_release(self, data):
 		uri = '/repos/{}/releases'.format(self.repository)
@@ -71,14 +72,18 @@ if __name__ == "__main__":
 	try:
 		target_releases = target_repo.fetch_releases()
 		existing_releases_map = dict()
-		for release in target_releases.parsed:
+		for release in target_releases:
 			existing_releases_map[release.tag_name] = release.id
+                        
+	# This allows the fetch operation to silently fail for repos with many
+	# releases due to a bug in octohub's Pager/pagination code.
+	# PR #3 to fix that bug is submitted to the octohub project.
 	except AttributeError:
 		# workaround for bug in octohub
 		existing_releases_map = dict()
 
 	source_releases = source_repo.fetch_releases()
-	for release in source_releases.parsed:
+	for release in source_releases:
 		print "Release #{}: [{}] {}".format(release.id, release.tag_name, release.name)
 
 		# copy data for release creation
